@@ -2,59 +2,14 @@
 
 const STORAGE_KEY = "simula-app-v1";
 const LETTERS = ["A", "B", "C", "D", "E"];
-const VIEW_NAMES = { overview: "Visão geral", exams: "Meus simulados", results: "Resultados" };
-
-const sampleExam = {
-  id: "demo-ciencias",
-  title: "Fundamentos de ciências",
-  subject: "Ciências",
-  sourceName: "Simulado de demonstração",
-  createdAt: new Date().toISOString(),
-  questions: [
-    {
-      id: "demo-q1",
-      text: "Qual órgão é responsável por bombear o sangue para todo o corpo?",
-      options: [
-        { letter: "A", text: "Pulmão" },
-        { letter: "B", text: "Coração" },
-        { letter: "C", text: "Fígado" },
-        { letter: "D", text: "Rim" }
-      ],
-      answer: "B"
-    },
-    {
-      id: "demo-q2",
-      text: "Qual é o processo pelo qual as plantas produzem seu próprio alimento usando luz?",
-      options: [
-        { letter: "A", text: "Respiração" },
-        { letter: "B", text: "Digestão" },
-        { letter: "C", text: "Fotossíntese" },
-        { letter: "D", text: "Fermentação" }
-      ],
-      answer: "C"
-    },
-    {
-      id: "demo-q3",
-      text: "Ao nível do mar, a água pura entra em ebulição aproximadamente a:",
-      options: [
-        { letter: "A", text: "0 °C" },
-        { letter: "B", text: "50 °C" },
-        { letter: "C", text: "100 °C" },
-        { letter: "D", text: "150 °C" }
-      ],
-      answer: "C"
-    }
-  ],
-  draftAnswers: {},
-  results: []
-};
+const VIEW_NAMES = { overview: "Visão geral", exams: "Minhas provas", results: "Resultados" };
 
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved && Array.isArray(saved.exams)) {
       return {
-        exams: saved.exams,
+        exams: saved.exams.filter((exam) => exam.id !== "demo-ciencias"),
         results: Array.isArray(saved.results) ? saved.results : [],
         streakDays: Number.isFinite(saved.streakDays) ? saved.streakDays : 0
       };
@@ -63,7 +18,7 @@ function loadState() {
     console.error("Não foi possível carregar os dados salvos.", error);
     showToast("Não foi possível ler os dados salvos neste navegador.", true);
   }
-  return { exams: [structuredClone(sampleExam)], results: [], streakDays: 0 };
+  return { exams: [], results: [], streakDays: 0 };
 }
 
 let state = loadState();
@@ -72,10 +27,7 @@ let activeExamId = null;
 let activeResultId = null;
 let currentQuestionIndex = 0;
 let toastTimer = null;
-let parsedDraft = [];
-let modalStage = "source";
 let draftTitle = "";
-let draftSubject = "";
 let draftSourceName = "";
 
 const content = document.getElementById("app-content");
@@ -164,21 +116,20 @@ function renderOverview() {
         <p class="welcome-subtitle">Pratique no seu ritmo e acompanhe sua evolução.</p>
       </div>
       <div class="welcome-actions">
-        <button class="secondary-button" data-action="demo">Experimentar exemplo</button>
-        <button class="primary-button" data-action="create"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Criar simulado</button>
+        <button class="primary-button" data-action="create"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Importar prova</button>
       </div>
     </section>
 
     <section class="hero-card">
       <div class="hero-copy">
         <div class="hero-tag"><span></span> seu espaço de prática</div>
-        <h2>Transforme qualquer prova em uma nova oportunidade.</h2>
-        <p>Importe um arquivo ou cole o conteúdo, responda questão por questão e veja seu resultado no final.</p>
+        <h2>Sua prova pronta, agora interativa.</h2>
+        <p>Envie um simulado que você já tem, responda às questões e confira seus acertos no final.</p>
       </div>
       <div class="hero-illustration" aria-hidden="true">
         <svg viewBox="0 0 48 48"><path d="M14 8h14l8 8v22H14z"/><path d="M28 8v9h8M19 24h12M19 29h12M19 34h7"/><path d="m9 15 3 3 5-6"/></svg>
       </div>
-      <button class="hero-button" data-action="create">Criar meu simulado <span>→</span></button>
+      <button class="hero-button" data-action="create">Enviar prova <span>→</span></button>
     </section>
 
     <section>
@@ -188,7 +139,7 @@ function renderOverview() {
       <div class="stats-grid">
         <article class="stat-card">
           <div class="stat-icon purple"><svg viewBox="0 0 24 24"><path d="M8 4H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8M8 16h5"/></svg></div>
-          <div><strong class="stat-number">${state.exams.length}</strong><span class="stat-label">simulados criados</span></div>
+          <div><strong class="stat-number">${state.exams.length}</strong><span class="stat-label">provas importadas</span></div>
         </article>
         <article class="stat-card">
           <div class="stat-icon green"><svg viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7"/></svg></div>
@@ -203,14 +154,14 @@ function renderOverview() {
 
     <div class="lower-grid">
       <section class="panel">
-        <div class="panel-header"><h2>Seus simulados</h2><button class="text-button" data-view="exams">Ver todos <span aria-hidden="true">→</span></button></div>
+        <div class="panel-header"><h2>Suas provas</h2><button class="text-button" data-view="exams">Ver todas <span aria-hidden="true">→</span></button></div>
         <div class="exam-list">
           ${latestExams.length ? latestExams.map((exam, index) => `
             <div class="exam-row">
               <div class="exam-glyph ${glyphClass(index)}" aria-hidden="true">${index === 0 ? "▤" : index === 1 ? "◈" : "✳"}</div>
               <div class="exam-row-copy"><strong>${escapeHtml(exam.title)}</strong><small>${escapeHtml(exam.subject || "Geral")} · ${questionCount(exam)} questões</small></div>
               <button class="row-action" data-action="start" data-id="${escapeHtml(exam.id)}" aria-label="Responder ${escapeHtml(exam.title)}">→</button>
-            </div>`).join("") : `<div class="empty-state"><p>Seus simulados vão aparecer aqui.</p></div>`}
+            </div>`).join("") : `<div class="empty-state"><p>As provas que você importar vão aparecer aqui.</p></div>`}
         </div>
       </section>
       <section class="panel streak-card">
@@ -227,8 +178,8 @@ function renderOverview() {
 function renderExams() {
   content.innerHTML = `
     <section class="page-title-row">
-      <div><p class="eyebrow">SUA BIBLIOTECA</p><h1>Meus simulados</h1><p>Provas e exercícios prontos para você praticar.</p></div>
-      <button class="primary-button" data-action="create"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo simulado</button>
+      <div><p class="eyebrow">SUA BIBLIOTECA</p><h1>Minhas provas</h1><p>Simulados que você importou e pode responder.</p></div>
+      <button class="primary-button" data-action="create"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Importar prova</button>
     </section>
     ${state.exams.length ? `<div class="exam-grid">${state.exams.map((exam, index) => `
       <article class="exam-card">
@@ -236,7 +187,7 @@ function renderExams() {
         <h3>${escapeHtml(exam.title)}</h3>
         <div class="exam-card-meta">${escapeHtml(exam.subject || "Geral")} · ${questionCount(exam)} ${questionCount(exam) === 1 ? "questão" : "questões"}</div>
         <div class="exam-card-footer"><small>Criado ${formatDate(exam.createdAt)}</small><button class="small-primary" data-action="start" data-id="${escapeHtml(exam.id)}">Responder →</button></div>
-      </article>`).join("")}</div>` : emptyState("Sua biblioteca está vazia", "Importe um PDF, uma imagem ou cole o texto da prova para criar seu primeiro simulado.", "Criar meu primeiro simulado")}
+      </article>`).join("")}</div>` : emptyState("Nenhuma prova importada", "Envie o simulado que você já tem. O app lê as questões para você responder e corrigir no final.", "Importar prova")}
   `;
 }
 
@@ -394,83 +345,54 @@ function renderResultReview(resultId) {
 }
 
 function openCreateModal() {
-  modalStage = "source";
-  parsedDraft = [];
   draftTitle = "";
-  draftSubject = "";
   draftSourceName = "";
   modalRoot.innerHTML = `
     <div class="modal-backdrop" data-action="backdrop-close">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div class="modal-header"><div><h2 id="modal-title">Criar um simulado</h2><p>Comece por um arquivo ou cole o conteúdo da prova.</p></div><button class="modal-close" data-action="close-modal" aria-label="Fechar">×</button></div>
+        <div class="modal-header"><div><h2 id="modal-title">Importar prova pronta</h2><p>Envie um simulado existente. Vamos ler as questões e o gabarito.</p></div><button class="modal-close" data-action="close-modal" aria-label="Fechar">×</button></div>
         <div class="modal-body" id="modal-body">${sourceStageHtml()}</div>
       </section>
     </div>`;
-  modalRoot.querySelector("input[name=exam-title]").focus();
+  modalRoot.querySelector("#exam-file").focus();
 }
 
 function sourceStageHtml() {
   return `
     <div class="form-grid">
-      <div class="field"><label for="exam-title">Nome do simulado</label><input id="exam-title" name="exam-title" placeholder="Ex.: Revisão de matemática" maxlength="80" required /></div>
-      <div class="field"><label for="exam-subject">Matéria <span style="font-weight:400;color:#9699a8">(opcional)</span></label><input id="exam-subject" name="exam-subject" placeholder="Ex.: Matemática" maxlength="50" /></div>
+      <div class="field"><label for="exam-title">Nome da prova <span style="font-weight:400;color:#9699a8">(opcional)</span></label><input id="exam-title" name="exam-title" placeholder="Usaremos o nome do arquivo" maxlength="80" /></div>
     </div>
     <label class="upload-zone" id="upload-zone">
       <span class="upload-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></span>
-      <strong id="upload-title">Escolher PDF, imagem ou arquivo de texto</strong>
+      <strong id="upload-title">Selecionar o arquivo do simulado</strong>
       <small id="upload-name">PDF, JPG, PNG, TXT ou JSON · até 15 MB</small>
       <input type="file" id="exam-file" accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.md,.json,application/pdf,image/jpeg,image/png,image/webp,text/plain,application/json" />
     </label>
     <div class="source-divider">ou use o link público da prova</div>
     <div class="field"><label for="exam-url">Link da prova</label><input id="exam-url" name="exam-url" type="url" placeholder="https://exemplo.com/prova.pdf" /><p class="field-help">O site precisa permitir leitura pelo navegador. Se o link não abrir, baixe o arquivo e envie acima.</p></div>
     <div class="source-divider">ou cole o texto da prova</div>
-    <div class="field"><label for="exam-text">Texto das questões</label><textarea id="exam-text" placeholder="Exemplo:&#10;1. Qual é a capital do Brasil?&#10;A) São Paulo&#10;B) Brasília&#10;C) Salvador&#10;D) Recife&#10;&#10;2. ...&#10;&#10;Gabarito: 1-B, 2-A"></textarea><p class="field-help">As questões precisam estar numeradas e as alternativas identificadas como A), B), C)... O gabarito é opcional e pode ser definido na próxima etapa.</p></div>
+    <div class="field"><label for="exam-text">Texto das questões</label><textarea id="exam-text" placeholder="Exemplo:&#10;1. Qual é a capital do Brasil?&#10;A) São Paulo&#10;B) Brasília&#10;C) Salvador&#10;D) Recife&#10;&#10;2. ...&#10;&#10;Gabarito: 1-B, 2-A"></textarea><p class="field-help">O texto precisa ter questões numeradas e alternativas identificadas. Para corrigir, inclua o gabarito no mesmo arquivo ou texto.</p></div>
     <div id="parser-status" aria-live="polite"></div>
-    <div class="modal-footer"><span class="field-help">Seus arquivos são processados neste navegador.</span><div class="right-actions"><button class="primary-button" data-action="parse-source">Ler e revisar questões <span aria-hidden="true">→</span></button></div></div>`;
-}
-
-function editorStageHtml() {
-  return `
-    <p class="editor-note">Confira o texto e as alternativas extraídas. Você também pode corrigir o enunciado, ajustar o gabarito ou deixá-lo sem correção automática.</p>
-    <div id="editor-questions">${parsedDraft.map((question, index) => questionEditorHtml(question, index)).join("")}</div>
-    <button class="secondary-button" data-action="add-question">+ Adicionar questão</button>
-    <div id="parser-status" aria-live="polite"></div>
-    <div class="modal-footer"><button class="secondary-button" data-action="editor-back">← Voltar</button><div class="right-actions"><button class="primary-button" data-action="save-exam">Salvar simulado</button></div></div>`;
-}
-
-function questionEditorHtml(question, index) {
-  return `<article class="editor-question" data-question-id="${escapeHtml(question.id)}">
-    <div class="editor-question-top"><strong>Questão ${index + 1}</strong><button class="remove-question" data-action="remove-question" data-id="${escapeHtml(question.id)}">Remover</button></div>
-    <div class="field"><label>Enunciado</label><textarea data-field="text" placeholder="Escreva o enunciado">${escapeHtml(question.text)}</textarea></div>
-    <div class="option-edit-grid">
-      ${question.options.map((option) => `<div class="option-edit-row"><span>${escapeHtml(option.letter)}</span><input data-option="${escapeHtml(option.letter)}" value="${escapeHtml(option.text)}" placeholder="Texto da alternativa ${escapeHtml(option.letter)}" /><select data-correct="${escapeHtml(option.letter)}" aria-label="Definir alternativa ${escapeHtml(option.letter)} como gabarito"><option value="">Não é o gabarito</option><option value="${escapeHtml(option.letter)}" ${question.answer === option.letter ? "selected" : ""}>É o gabarito</option></select></div>`).join("")}
-    </div>
-  </article>`;
-}
-
-function readEditorValues() {
-  const questions = [];
-  modalRoot.querySelectorAll(".editor-question").forEach((article) => {
-    const question = parsedDraft.find((item) => item.id === article.dataset.questionId);
-    if (!question) return;
-    question.text = article.querySelector('[data-field="text"]').value.trim();
-    question.options = question.options.map((option) => ({
-      ...option,
-      text: article.querySelector(`[data-option="${option.letter}"]`).value.trim()
-    }));
-    const selected = article.querySelectorAll("select[data-correct]");
-    question.answer = [...selected].find((select) => select.value)?.value || "";
-    questions.push(question);
-  });
-  parsedDraft = questions;
+    <div class="modal-footer"><span class="field-help">A prova fica salva só neste navegador.</span><div class="right-actions"><button class="primary-button" data-action="parse-source">Importar e responder <span aria-hidden="true">→</span></button></div></div>`;
 }
 
 function parseQuestionText(rawText) {
   const text = rawText.replace(/\r/g, "\n").replace(/\u00a0/g, " ");
-  const lines = text.split("\n");
+  const pages = text.split(/^\s*\[\[PAGE \d+\]\]\s*$/m);
+  const pageAware = pages.length > 1;
+  const isKeyPage = (page) => /^\s*gabarito(?:\s+comentado)?\s*$/im.test(page);
+  const isCommentaryPage = (page) => /^\s*\d{1,3}\.\s*Resposta:\s*[A-D]\b/im.test(page);
+  const isNonQuestionPage = (page) => /^\s*(?:INSTRU[CÇ][OÕ]ES|CART[AÃ]O DE RESPOSTAS|FOLHA DE RESPOSTAS)\s*$/im.test(page);
+  const keyPages = pageAware ? pages.filter(isKeyPage) : [];
+  const questionPages = pageAware
+    ? pages
+      .filter((page) => !isKeyPage(page) && !isCommentaryPage(page) && !isNonQuestionPage(page))
+      .map((page) => page.split("\n").filter((line) => !/·\s*pág(?:ina)?\.?\s*\d+/i.test(line)).join("\n"))
+    : pages;
+  const lines = questionPages.join("\n").split("\n");
   const keyStart = lines.findIndex((line) => /^\s*(?:gabarito|respostas?\s+corretas?)\b/i.test(line));
-  const questionLines = keyStart >= 0 ? lines.slice(0, keyStart) : lines;
-  const keyText = keyStart >= 0 ? lines.slice(keyStart).join("\n") : "";
+  const questionLines = pageAware || keyStart < 0 ? lines : lines.slice(0, keyStart);
+  const keyText = [...keyPages, ...(keyStart >= 0 ? [lines.slice(keyStart).join("\n")] : [])].join("\n");
   const key = {};
   const keyPattern = /(?:quest(?:a|ã)o\s*)?(\d{1,3})\s*[-.:)]?\s*([A-E])\b/gi;
   let match;
@@ -491,11 +413,17 @@ function parseQuestionText(rawText) {
 
   const questions = blocks.map((block, index) => {
     const body = block.lines.join("\n").trim();
-    const optionPattern = /(?:^|\n)\s*([A-E])\s*[).:\-]\s*(.*)/g;
+    const optionPattern = /(?:^|\n)\s*(?:\(([A-E])\)|([A-E])\s*[).:\-])\s*(.*)/g;
     const optionMatches = [];
     let optionMatch;
     while ((optionMatch = optionPattern.exec(body)) !== null) {
-      optionMatches.push({ letter: optionMatch[1].toUpperCase(), start: optionMatch.index + (optionMatch[0].startsWith("\n") ? 1 : 0), contentStart: optionMatch.index + optionMatch[0].length, text: optionMatch[2] });
+      const optionText = optionMatch[3];
+      optionMatches.push({
+        letter: (optionMatch[1] || optionMatch[2]).toUpperCase(),
+        start: optionMatch.index + (optionMatch[0].startsWith("\n") ? 1 : 0),
+        contentStart: optionMatch.index + optionMatch[0].length - optionText.length,
+        text: optionText
+      });
     }
     let stem = body;
     const options = [];
@@ -561,7 +489,7 @@ async function extractPdfText(file, status) {
     status(`Lendo página ${pageNumber} de ${documentPdf.numPages}…`);
     const page = await documentPdf.getPage(pageNumber);
     const pageText = await page.getTextContent();
-    output += `${pageText.items.map((item) => item.str || "").join("\n")}\n`;
+    output += `\n[[PAGE ${pageNumber}]]\n${pageText.items.map((item) => item.str || "").join("\n")}\n`;
   }
   return output;
 }
@@ -638,15 +566,9 @@ async function readOnlineSource(sourceUrl, status) {
 
 async function parseSource() {
   const title = modalRoot.querySelector('[name="exam-title"]').value.trim();
-  const subject = modalRoot.querySelector('[name="exam-subject"]').value.trim();
   let file = modalRoot.querySelector("#exam-file").files[0];
   const sourceUrl = modalRoot.querySelector('[name="exam-url"]').value.trim();
   const pasted = modalRoot.querySelector("#exam-text").value.trim();
-  if (!title) {
-    modalRoot.querySelector('[name="exam-title"]').focus();
-    setParserStatus("Dê um nome ao simulado antes de continuar.", "error");
-    return;
-  }
   if ([Boolean(file), Boolean(sourceUrl), Boolean(pasted)].filter(Boolean).length > 1) {
     setParserStatus("Use apenas uma fonte por vez: arquivo, link ou texto colado.", "error");
     return;
@@ -662,8 +584,6 @@ async function parseSource() {
   const button = modalRoot.querySelector('[data-action="parse-source"]');
   button.disabled = true;
   button.textContent = "Lendo prova…";
-  draftTitle = title;
-  draftSubject = subject;
   draftSourceName = file?.name || sourceUrl || "Texto colado";
   const status = (message) => setParserStatus(message);
   try {
@@ -689,68 +609,49 @@ async function parseSource() {
         throw new Error("Formato não reconhecido. Envie PDF, JPG, PNG, WEBP, TXT ou JSON.");
       }
     }
-    parsedDraft = jsonData !== null ? parseJsonExam(jsonData) : parseQuestionText(text);
-    if (!parsedDraft.length) throw new Error("Não encontrei questões numeradas com alternativas. Confira o formato indicado e tente novamente.");
-    modalStage = "editor";
-    modalRoot.querySelector("#modal-title").textContent = "Revise as questões";
-    modalRoot.querySelector(".modal-header p").textContent = `${parsedDraft.length} ${parsedDraft.length === 1 ? "questão encontrada" : "questões encontradas"} — confira antes de salvar.`;
-    modalRoot.querySelector("#modal-body").innerHTML = editorStageHtml();
+    const questions = jsonData !== null ? parseJsonExam(jsonData) : parseQuestionText(text);
+    if (!questions.length) throw new Error("Não encontrei questões no arquivo. Envie um PDF com texto selecionável ou um arquivo TXT/JSON.");
+    const invalidQuestions = questions.filter((question) =>
+      !question.text || question.options.filter((option) => option.text).length < 2
+    );
+    if (invalidQuestions.length) {
+      throw new Error(`O arquivo foi lido, mas ${invalidQuestions.length} ${invalidQuestions.length === 1 ? "questão ficou incompleta" : "questões ficaram incompletas"}. Confira se o PDF permite selecionar/copiar o texto.`);
+    }
+    questions.forEach((question) => {
+      question.options = question.options.filter((option) => option.text);
+      if (!question.options.some((option) => option.letter === question.answer)) question.answer = "";
+    });
+    const inferredName = (file?.name || sourceUrl.split("/").pop() || "Prova importada")
+      .replace(/\.[^.]+$/, "")
+      .replace(/[-_]+/g, " ")
+      .trim()
+      .replace(/(^|\s)\S/g, (letter) => letter.toLocaleUpperCase("pt-BR"));
+    const exam = {
+      id: createId(),
+      title: title || inferredName || "Prova importada",
+      subject: "",
+      sourceName: draftSourceName,
+      createdAt: new Date().toISOString(),
+      questions,
+      draftAnswers: {}
+    };
+    state.exams.unshift(exam);
+    if (!saveState()) {
+      state.exams = state.exams.filter((item) => item.id !== exam.id);
+      throw new Error("Não foi possível salvar a prova neste navegador.");
+    }
+    modalRoot.innerHTML = "";
+    startExam(exam.id);
+    const gradedCount = questions.filter((question) => question.answer).length;
+    showToast(gradedCount
+      ? `Prova importada: ${questions.length} questões e ${gradedCount} respostas do gabarito encontradas.`
+      : `Prova importada com ${questions.length} questões. Não encontrei gabarito para corrigir.`);
   } catch (error) {
     console.error("Falha ao ler a prova.", error);
     setParserStatus(error instanceof Error ? error.message : "Não foi possível ler esse arquivo.", "error");
     button.disabled = false;
     button.innerHTML = 'Tentar novamente <span aria-hidden="true">→</span>';
   }
-}
-
-function saveExam() {
-  readEditorValues();
-  const title = draftTitle.trim();
-  const subject = draftSubject.trim();
-  if (!title) {
-    showToast("O nome do simulado ficou vazio. Volte e preencha esse campo.", true);
-    return;
-  }
-  if (!parsedDraft.length) {
-    showToast("Adicione pelo menos uma questão para salvar.", true);
-    return;
-  }
-  const invalid = parsedDraft.find((question) =>
-    !question.text || question.options.filter((option) => option.text).length < 2
-  );
-  if (invalid) {
-    setParserStatus("Cada questão precisa de um enunciado e pelo menos duas alternativas preenchidas.", "error");
-    const article = modalRoot.querySelector(`[data-question-id="${invalid.id}"]`);
-    article?.scrollIntoView({ behavior: "smooth", block: "center" });
-    return;
-  }
-  for (const question of parsedDraft) {
-    question.options = question.options.filter((option) => option.text);
-    const letters = new Set(question.options.map((option) => option.letter));
-    if (question.answer && !letters.has(question.answer)) question.answer = "";
-  }
-  const exam = {
-    id: createId(),
-    title,
-    subject,
-    sourceName: draftSourceName,
-    createdAt: new Date().toISOString(),
-    questions: parsedDraft.map((question) => ({ ...question, options: question.options.map((option) => ({ ...option })) })),
-    draftAnswers: {}
-  };
-  state.exams.unshift(exam);
-  saveState();
-  modalRoot.innerHTML = "";
-  parsedDraft = [];
-  draftTitle = "";
-  draftSubject = "";
-  draftSourceName = "";
-  currentView = "exams";
-  activeExamId = null;
-  activeResultId = null;
-  setActiveNav("exams");
-  renderExams();
-  showToast("Simulado salvo. Quando quiser, é só começar!");
 }
 
 function createId() {
@@ -775,33 +676,8 @@ function handleClick(event) {
     case "create": openCreateModal(); break;
     case "close-modal": modalRoot.innerHTML = ""; break;
     case "backdrop-close": if (event.target === button) modalRoot.innerHTML = ""; break;
-    case "about": showToast("Importe uma prova, revise as questões extraídas e responda para ver sua correção."); break;
+    case "about": showToast("Envie um simulado pronto. O app lê as questões e o gabarito para você responder e corrigir."); break;
     case "parse-source": parseSource(); break;
-    case "save-exam": saveExam(); break;
-    case "add-question":
-      readEditorValues();
-      parsedDraft.push({ id: createId(), text: "", options: LETTERS.slice(0, 4).map((letter) => ({ letter, text: "" })), answer: "" });
-      modalRoot.querySelector("#modal-body").innerHTML = editorStageHtml();
-      modalRoot.querySelector(".editor-question:last-child textarea").focus();
-      break;
-    case "remove-question":
-      readEditorValues();
-      if (parsedDraft.length <= 1) {
-        setParserStatus("O simulado precisa ter pelo menos uma questão.", "error");
-        return;
-      }
-      parsedDraft = parsedDraft.filter((question) => question.id !== button.dataset.id);
-      modalRoot.querySelector("#modal-body").innerHTML = editorStageHtml();
-      break;
-    case "editor-back":
-      readEditorValues();
-      modalStage = "source";
-      modalRoot.querySelector("#modal-title").textContent = "Criar um simulado";
-      modalRoot.querySelector(".modal-header p").textContent = "Comece por um arquivo ou cole o conteúdo da prova.";
-      modalRoot.querySelector("#modal-body").innerHTML = sourceStageHtml();
-      modalRoot.querySelector('[name="exam-title"]').value = draftTitle;
-      modalRoot.querySelector('[name="exam-subject"]').value = draftSubject;
-      break;
     case "start": startExam(button.dataset.id); break;
     case "answer": {
       const exam = state.exams.find((item) => item.id === activeExamId);
@@ -851,16 +727,6 @@ function handleClick(event) {
       showToast("Simulado excluído.");
       break;
     }
-    case "demo": {
-      let demo = state.exams.find((exam) => exam.id === sampleExam.id);
-      if (!demo) {
-        demo = structuredClone(sampleExam);
-        state.exams.unshift(demo);
-        saveState();
-      }
-      startExam(demo.id);
-      break;
-    }
     default: break;
   }
 }
@@ -873,12 +739,6 @@ document.addEventListener("change", (event) => {
     document.getElementById("upload-title").textContent = "Arquivo selecionado";
     document.getElementById("upload-name").textContent = file.name;
     document.getElementById("upload-zone").classList.add("has-file");
-  }
-  if (event.target.matches("select[data-correct]") && event.target.value) {
-    const question = event.target.closest(".editor-question");
-    question.querySelectorAll("select[data-correct]").forEach((select) => {
-      if (select !== event.target) select.value = "";
-    });
   }
 });
 
