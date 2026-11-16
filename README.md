@@ -12,6 +12,7 @@ Abra `index.html` no navegador ou use a extensão Live Server do VS Code para ro
 2. Envie o PDF do simulado (ou um arquivo de texto/JSON, imagem, link público ou texto colado).
 3. O app tenta ler as questões e o gabarito automaticamente e abre o simulado para você responder.
 4. Ao finalizar, veja a pontuação e a revisão das respostas.
+5. Se houver erros, consulte os assuntos sugeridos na correção ou abra **O que estudar?** em Resultados para ver os temas reunidos de todos os simulados.
 
 PDFs com texto selecionável são lidos no navegador. A leitura de imagens e PDFs requer conexão com a internet para carregar as ferramentas de leitura. O reconhecimento depende da formatação do arquivo.
 
@@ -20,3 +21,5 @@ Para reconhecer questões em texto, numere os enunciados (`1.`, `2.` ou `Questã
 Arquivos JSON podem ser uma lista de questões ou um objeto com a propriedade `questions`. Cada questão aceita `text` (ou `question`), `options` e `answer` (ou `correctAnswer`). As alternativas podem ser textos ou objetos `{ "letter": "A", "text": "..." }`.
 
 Simulados e resultados ficam no armazenamento local do navegador deste dispositivo. Esta versão não possui contas, sincronização entre dispositivos nem servidor. Se o PDF não contiver um gabarito legível, o app registra as respostas, mas não consegue corrigi-las automaticamente.
+
+As sugestões agrupam os assuntos identificados nos enunciados errados e mostram um resumo rápido e uma orientação de revisão. Esse resumo é local e baseado em regras do app; não é uma análise por IA e deve ser usado como ponto de partida para consultar o material da disciplina.

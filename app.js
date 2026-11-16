@@ -2,7 +2,129 @@
 
 const STORAGE_KEY = "simula-app-v1";
 const LETTERS = ["A", "B", "C", "D", "E"];
-const VIEW_NAMES = { overview: "Visão geral", exams: "Minhas provas", results: "Resultados" };
+const VIEW_NAMES = { overview: "Visão geral", exams: "Minhas provas", results: "Resultados", study: "Sugestões de estudo" };
+
+const STUDY_TOPICS = [
+  {
+    id: "redacao-oficial",
+    title: "Redação oficial e pronomes de tratamento",
+    match: /\bredac[aã]o oficial\b|\bpronomes de tratamento\b|\bmanual de reda[cç][aã]o\b|\bof[ií]cio\b|\bmemorando\b/,
+    summary: "A redação oficial prioriza clareza e padronização. Pronomes de tratamento exigem concordância gramatical de acordo com a pessoa a quem se referem.",
+    review: "Revise a finalidade dos expedientes e as regras de concordância dos pronomes de tratamento."
+  },
+  {
+    id: "concordancia",
+    title: "Concordância verbal e nominal",
+    match: /\bconcord/,
+    summary: "O verbo concorda com o núcleo do sujeito. Com “haver” no sentido de existir e “fazer” indicando tempo decorrido, o verbo fica no singular.",
+    review: "Identifique o sujeito e o núcleo antes de escolher a forma verbal."
+  },
+  {
+    id: "regencia",
+    title: "Regência verbal e nominal",
+    match: /\bregenc/,
+    summary: "A regência define as preposições exigidas por verbos e nomes. Por exemplo, no sentido de ver, “assistir” pede a preposição “a”.",
+    review: "Revise a regência dos verbos e expressões que aparecem no enunciado."
+  },
+  {
+    id: "pontuacao",
+    title: "Pontuação e uso da vírgula",
+    match: /\bvirgula\b|\bpontuac/,
+    summary: "A vírgula organiza termos e orações. Não separe por vírgula o sujeito do verbo; orações explicativas intercaladas podem vir isoladas por vírgulas.",
+    review: "Leia cada alternativa identificando sujeito, verbo e orações intercaladas."
+  },
+  {
+    id: "ortografia",
+    title: "Ortografia e Acordo Ortográfico",
+    match: /\bortograf|\bacentuac|\bhifen\b/,
+    summary: "A ortografia oficial inclui regras de acentuação e uso do hífen. O Acordo Ortográfico retirou o acento de palavras como “ideia” e “voo”.",
+    review: "Revise as regras atuais e pratique com exemplos de grafias parecidas."
+  },
+  {
+    id: "classes-palavras",
+    title: "Classes de palavras e formação",
+    match: /\badverb|\bsubstantiv|\bpronome|\bclasse gramatical|\bcomposic|\bderivac|\bformac[aã]o de palavras/,
+    summary: "Classes gramaticais descrevem a função das palavras. Na formação, composição reúne radicais; derivação acrescenta afixos ou altera a classe.",
+    review: "Classifique as palavras no contexto da frase e diferencie composição de derivação."
+  },
+  {
+    id: "sentido-texto",
+    title: "Interpretação, conectivos e sentido",
+    match: /\bconectiv|\bironia|\btexto\b|\bsentido\b|\brelac[aã]o de/,
+    summary: "Conectivos indicam relações entre ideias: “mas” costuma marcar oposição, enquanto o contexto ajuda a identificar ironia e sentido figurado.",
+    review: "Volte ao trecho citado e verifique qual relação ou intenção o contexto realmente sustenta."
+  },
+  {
+    id: "tipologia-textual",
+    title: "Tipos e sequências textuais",
+    match: /\bsequ[eê]ncia textual|\btipologia textual|\bg[eê]nero textual|\binjuntiv|\bnarrativ|\bdissertativ/,
+    summary: "Textos injuntivos orientam ações; narrativos relatam acontecimentos; descritivos caracterizam; dissertativos apresentam ideias e argumentos.",
+    review: "Observe a finalidade do texto e o que ele espera que o leitor faça."
+  },
+  {
+    id: "matematica",
+    title: "Porcentagem, proporção e lógica",
+    match: /\bporcent|\bpercent|\bproporc|\bproporcional|\bnegac[aã]o da proposic|\bproposic|\bmatr[ií]cul|\bmesmo ritmo/,
+    summary: "Em proporções, compare grandezas na mesma unidade. Para calcular um percentual, transforme a taxa em decimal e aplique-a ao valor inicial.",
+    review: "Monte a proporção ou escreva a operação antes de calcular; confira se o resultado faz sentido."
+  },
+  {
+    id: "goias-localidade",
+    title: "Realidade de Goiás e Aparecida de Goiânia",
+    match: /\bgoi[aá]s\b|\baparecida de goi[aá]nia\b|\bbioma\b/,
+    summary: "Questões locais podem cobrar história, organização municipal, características geográficas e aspectos regionais de Goiás e de Aparecida de Goiânia.",
+    review: "Revise os fatos regionais citados na questão e confirme datas e conceitos em material atualizado."
+  },
+  {
+    id: "constituicao",
+    title: "Constituição Federal e princípios da administração",
+    match: /\bconstituic[aã]o federal\b|\bart\.?\s*37\b|\bart\.?\s*205\b|\bart\.?\s*208\b|\bart\.?\s*211\b|\bprinc[ií]pios expressos\b/,
+    summary: "A Constituição define princípios da administração pública e responsabilidades do Estado, da família e dos entes federativos na educação.",
+    review: "Estude o artigo mencionado no enunciado e associe cada princípio ou dever ao seu sujeito."
+  },
+  {
+    id: "ldb",
+    title: "LDB e organização da educação",
+    match: /\bldb\b|\blei\s*9[.,]394\b|\beducac[aã]o b[aá]sica\b|\bcarga hor[aá]ria m[ií]nima\b/,
+    summary: "A LDB organiza a educação nacional e estabelece regras sobre etapas de ensino, carga horária, frequência, modalidades e educação especial.",
+    review: "Revise o tema específico da questão na LDB, prestando atenção a números, percentuais e exceções."
+  },
+  {
+    id: "eca",
+    title: "Estatuto da Criança e do Adolescente (ECA)",
+    match: /\beca\b|\bestatuto da crian[cç]a|\bconselho tutelar\b/,
+    summary: "O ECA protege direitos de crianças e adolescentes. A escola e seus responsáveis têm deveres de garantir direitos e comunicar situações previstas em lei.",
+    review: "Leia o artigo relacionado ao dever ou direito cobrado e identifique quem deve agir."
+  },
+  {
+    id: "lai-lgpd",
+    title: "Acesso à informação e proteção de dados",
+    match: /\blai\b|\bacesso [àa] informa[cç][aã]o\b|\blgpd\b|\bdado pessoal\b|\bphishing\b/,
+    summary: "A LAI trata do acesso a informações públicas; a LGPD protege dados pessoais. Phishing é uma tentativa de enganar pessoas para obter dados ou induzir ações.",
+    review: "Diferencie transparência pública, proteção de dados e cuidados contra mensagens ou links suspeitos."
+  },
+  {
+    id: "documentos-arquivo",
+    title: "Documentos escolares, protocolo e arquivo",
+    match: /\bhist[oó]rico escolar\b|\bprotocolo\b|\barquivo corrente\b|\barquivo intermedi[aá]rio\b|\barquivo permanente\b|\btr[eê]s idades\b|\bata registra\b/,
+    summary: "O protocolo registra e acompanha a tramitação de documentos. Atas registram reuniões; arquivos corrente, intermediário e permanente correspondem a fases distintas do ciclo documental.",
+    review: "Associe cada documento ou fase do arquivo à sua finalidade e ao momento de uso."
+  },
+  {
+    id: "atendimento",
+    title: "Atendimento ao público e ética",
+    match: /\batendimento\b|\brespons[aá]vel chega\b|\bcidad[aã]o\b|\bsigilo\b|\bconduta\b/,
+    summary: "Um atendimento público adequado combina escuta, cordialidade, clareza, imparcialidade e respeito à privacidade.",
+    review: "Compare as alternativas com os princípios de respeito, informação correta e tratamento impessoal."
+  },
+  {
+    id: "planilhas",
+    title: "Planilhas e funções básicas",
+    match: /\bplanilha\b|\bsoma\(|\bspreadsheet\b|\bintervalo indicado\b/,
+    summary: "Funções de planilha automatizam operações em células. SOMA adiciona os valores do intervalo especificado.",
+    review: "Pratique a leitura de referências e intervalos, por exemplo, A1:A5."
+  }
+];
 
 function loadState() {
   try {
@@ -25,6 +147,7 @@ let state = loadState();
 let currentView = "overview";
 let activeExamId = null;
 let activeResultId = null;
+let studyResultFilterId = null;
 let currentQuestionIndex = 0;
 let toastTimer = null;
 let draftTitle = "";
@@ -86,6 +209,7 @@ function render() {
   }
   if (currentView === "exams") renderExams();
   else if (currentView === "results") renderResults();
+  else if (currentView === "study") renderStudyPlan();
   else renderOverview();
 }
 
@@ -194,7 +318,7 @@ function renderExams() {
 function renderResults() {
   const results = [...state.results].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
   content.innerHTML = `
-    <section class="page-title-row"><div><p class="eyebrow">ACOMPANHE SUA EVOLUÇÃO</p><h1>Resultados</h1><p>Veja como você foi nos simulados que já respondeu.</p></div></section>
+    <section class="page-title-row"><div><p class="eyebrow">ACOMPANHE SUA EVOLUÇÃO</p><h1>Resultados</h1><p>Veja como você foi nos simulados que já respondeu.</p></div>${results.length ? `<button class="primary-button" data-action="study-plan">O que estudar?</button>` : ""}</section>
     ${results.length ? `<div class="result-list">${results.map((result) => {
       const exam = state.exams.find((item) => item.id === result.examId);
       return `<article class="result-card">
@@ -215,6 +339,98 @@ function formatDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "recentemente";
   return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" }).format(date);
+}
+
+function normalizeText(value) {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function getStudyTopic(question) {
+  const text = normalizeText(question.text);
+  const topic = STUDY_TOPICS.find((item) => item.match.test(text));
+  if (topic) return topic;
+  const shortPrompt = question.text.replace(/\s+/g, " ").trim();
+  const fallbackTitle = shortPrompt.length > 58 ? `${shortPrompt.slice(0, 55).trim()}…` : shortPrompt;
+  return {
+    id: `questao-${normalizeText(shortPrompt).slice(0, 48)}`,
+    title: fallbackTitle ? `Revisar: ${fallbackTitle}` : "Revisar conteúdo da questão",
+    summary: "O tema não foi identificado automaticamente. Use o enunciado e a explicação da correção para localizar o conteúdo correspondente.",
+    review: "Releia a questão, consulte o material da disciplina sobre esse assunto e tente explicar por que a alternativa do gabarito é a correta."
+  };
+}
+
+function collectStudyTopics(results = state.results) {
+  const grouped = new Map();
+  results.forEach((result) => {
+    const exam = state.exams.find((item) => item.id === result.examId);
+    const questions = result.questionSnapshot || exam?.questions;
+    if (!Array.isArray(questions)) return;
+    questions.forEach((question, index) => {
+      if (!question.answer || result.answers?.[question.id] === question.answer) return;
+      const topic = getStudyTopic(question);
+      if (!grouped.has(topic.id)) {
+        grouped.set(topic.id, { ...topic, questions: [], examIds: new Set() });
+      }
+      const group = grouped.get(topic.id);
+      group.questions.push({
+        text: question.text,
+        number: index + 1,
+        examTitle: result.examTitle || exam?.title || "Simulado removido",
+        completedAt: result.completedAt,
+        selected: result.answers?.[question.id] || ""
+      });
+      group.examIds.add(result.examId);
+    });
+  });
+  return [...grouped.values()]
+    .map((group) => ({ ...group, examCount: group.examIds.size }))
+    .sort((a, b) => b.questions.length - a.questions.length || a.title.localeCompare(b.title, "pt-BR"));
+}
+
+function studyTopicCards(topics) {
+  return topics.map((topic) => `
+    <article class="study-card">
+      <div class="study-card-heading">
+        <span class="study-card-icon" aria-hidden="true">✦</span>
+        <div><h3>${escapeHtml(topic.title)}</h3><span>${topic.questions.length} ${topic.questions.length === 1 ? "erro registrado" : "erros registrados"} · ${topic.examCount} ${topic.examCount === 1 ? "prova" : "provas"}</span></div>
+      </div>
+      <div class="study-summary"><strong>Resumo rápido</strong><p>${escapeHtml(topic.summary)}</p></div>
+      <div class="study-review"><strong>Como revisar</strong><p>${escapeHtml(topic.review)}</p></div>
+      <details class="study-examples"><summary>Questões para revisar (${topic.questions.length})</summary>
+        <ul>${topic.questions.map((question) => `<li><strong>${escapeHtml(question.examTitle)} · Questão ${question.number}</strong><span>${escapeHtml(question.text)}</span>${question.selected ? `<small>Sua resposta: ${escapeHtml(question.selected)} · ${formatDate(question.completedAt)}</small>` : `<small>Não respondida · ${formatDate(question.completedAt)}</small>`}</li>`).join("")}</ul>
+      </details>
+    </article>`).join("");
+}
+
+function showStudyPlan(resultId = null) {
+  activeExamId = null;
+  activeResultId = null;
+  currentView = "study";
+  studyResultFilterId = resultId;
+  setActiveNav("results");
+  document.getElementById("page-name").textContent = "Sugestões de estudo";
+  renderStudyPlan();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderStudyPlan() {
+  const selectedResult = studyResultFilterId
+    ? state.results.filter((result) => result.id === studyResultFilterId)
+    : null;
+  const results = selectedResult || state.results;
+  const topics = collectStudyTopics(results);
+  const title = selectedResult ? "O que revisar nesta prova" : "Seu plano de revisão";
+  const description = selectedResult
+    ? "Temas relacionados às questões que você errou ou deixou em branco."
+    : "Sugestões reunidas a partir das questões erradas em todos os simulados concluídos.";
+  document.getElementById("page-name").textContent = "Sugestões de estudo";
+  content.innerHTML = `
+    <section class="page-title-row">
+      <div><p class="eyebrow">ESTUDO PERSONALIZADO</p><h1>${title}</h1><p>${description}</p></div>
+      ${selectedResult ? `<button class="secondary-button" data-action="all-study">Ver todos os simulados</button>` : ""}
+    </section>
+    ${topics.length ? `<div class="study-topic-list">${studyTopicCards(topics)}</div>` : `<section class="empty-state"><div class="empty-state-icon" aria-hidden="true">✓</div><h2>${selectedResult ? "Nenhum tema para revisar nesta prova" : "Ainda não há temas para revisar"}</h2><p>${selectedResult ? "Quando houver questões erradas ou sem resposta com gabarito, vamos sugerir assuntos para você estudar." : "Depois de responder simulados com gabarito, reuniremos aqui os temas das questões que você errou."}</p><button class="secondary-button" data-action="back-results">Voltar aos resultados</button></section>`}
+    <p class="study-disclaimer">Os resumos são sugestões automáticas baseadas nos enunciados e nos erros registrados. Confira o material da disciplina para aprofundar o estudo.</p>`;
 }
 
 function startExam(id) {
@@ -292,7 +508,13 @@ function submitExam() {
     gradedCount: graded.length,
     correct,
     percentage: graded.length ? Math.round((correct / graded.length) * 100) : 0,
-    answers: { ...answers }
+    answers: { ...answers },
+    questionSnapshot: exam.questions.map((question) => ({
+      id: question.id,
+      text: question.text,
+      options: question.options.map((option) => ({ ...option })),
+      answer: question.answer
+    }))
   };
   state.results.push(result);
   exam.draftAnswers = {};
@@ -308,7 +530,8 @@ function submitExam() {
 function renderResultReview(resultId) {
   const result = state.results.find((item) => item.id === resultId);
   const exam = result && state.exams.find((item) => item.id === result.examId);
-  if (!result || !exam) {
+  const questions = result?.questionSnapshot || exam?.questions;
+  if (!result || !questions) {
     activeResultId = null;
     navigate("results");
     return;
@@ -318,6 +541,7 @@ function renderResultReview(resultId) {
   const description = result.gradedCount
     ? `Você acertou ${result.correct} de ${result.gradedCount} questões com gabarito.`
     : "Suas respostas foram registradas, mas este simulado não tem gabarito para correção.";
+  const studyTopics = collectStudyTopics([result]);
   content.innerHTML = `
     <div class="test-top"><button class="back-button" data-action="back-results"><span aria-hidden="true">←</span> Voltar aos resultados</button><span class="test-progress-copy">${formatDate(result.completedAt)}</span></div>
     <section class="result-hero">
@@ -329,8 +553,13 @@ function renderResultReview(resultId) {
         <div class="result-stat"><strong>${result.total}</strong><span>questões</span></div>
       </div>
     </section>
-    <div class="section-heading"><div><h2>Revisão das respostas</h2><p>${escapeHtml(exam.title)}</p></div></div>
-    <div class="review-list">${exam.questions.map((question, index) => {
+    ${studyTopics.length ? `<section class="study-result-section">
+      <div class="section-heading"><div><h2>Assuntos para revisar</h2><p>Identificados pelas questões que você errou ou deixou em branco.</p></div></div>
+      <div class="study-topic-list">${studyTopicCards(studyTopics)}</div>
+      <button class="secondary-button study-all-button" data-action="all-study">Ver sugestão reunida de todos os simulados →</button>
+    </section>` : result.gradedCount ? `<section class="study-result-section"><div class="study-success"><strong>Mandou bem nos temas desta prova!</strong><p>Não encontramos questões erradas com gabarito para sugerir uma revisão.</p><button class="text-button" data-action="all-study">Ver temas para revisar em outros simulados →</button></div></section>` : ""}
+    <div class="section-heading"><div><h2>Revisão das respostas</h2><p>${escapeHtml(result.examTitle || exam?.title || "Simulado")}</p></div></div>
+    <div class="review-list">${questions.map((question, index) => {
       const given = result.answers[question.id];
       const selected = question.options.find((option) => option.letter === given);
       const correctOption = question.options.find((option) => option.letter === question.answer);
@@ -341,7 +570,7 @@ function renderResultReview(resultId) {
         ${question.answer ? `<p class="correct-answer">Gabarito: ${escapeHtml(question.answer)}${correctOption ? ` — ${escapeHtml(correctOption.text)}` : ""}</p>` : `<p>Sem gabarito cadastrado.</p>`}
       </article>`;
     }).join("")}</div>
-    <div class="result-actions"><button class="secondary-button" data-action="back-results">Ver histórico</button><button class="primary-button" data-action="retry" data-id="${escapeHtml(exam.id)}">Tentar novamente</button></div>`;
+    <div class="result-actions"><button class="secondary-button" data-action="back-results">Ver histórico</button>${exam ? `<button class="primary-button" data-action="retry" data-id="${escapeHtml(exam.id)}">Tentar novamente</button>` : ""}</div>`;
 }
 
 function openCreateModal() {
@@ -717,6 +946,8 @@ function handleClick(event) {
       renderResultReview(activeResultId);
       break;
     case "back-results": activeResultId = null; navigate("results"); break;
+    case "study-plan": showStudyPlan(); break;
+    case "all-study": showStudyPlan(); break;
     case "retry": activeResultId = null; startExam(button.dataset.id); break;
     case "delete-exam": {
       const exam = state.exams.find((item) => item.id === button.dataset.id);
